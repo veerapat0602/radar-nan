@@ -308,28 +308,31 @@
             return resultStr;
         }
 
-        function fetchRadarImage() {
-    // เปลี่ยนเป็น URL หลังบ้านที่คุณได้จาก Render
+       function fetchRadarImage() {
     const backendUrl = "https://radar-backend-u1xk.onrender.com/api/capture-radar";
+
+    // 1. แจ้งเตือนทันทีที่กดปุ่ม
+    alert("กำลังดึงภาพเรดาร์ล่าสุด กรุณารอสักครู่...");
 
     fetch(backendUrl)
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                const img = new Image();
-                img.crossOrigin = "Anonymous";
-                img.onload = function() {
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                    alert("ดึงภาพเรดาร์สำเร็จ!");
-                };
-                img.src = data.url;
+                // 2. ส่ง URL ภาพไปยังแท็ก <img> หลัก เพื่อให้รูปภาพแสดงบนหน้าเว็บทันที
+                const radarImg = document.getElementById('radarImg');
+                radarImg.src = data.url;
+
+                // 3. แจ้งเตือนเมื่อดึงภาพสำเร็จ
+                alert("ดึงภาพเรดาร์ล่าสุดสำเร็จ!");
+            } else {
+                alert("ไม่สามารถดึงภาพเรดาร์ได้");
             }
         })
         .catch(err => {
-            alert("ไม่สามารถเชื่อมต่อหลังบ้านได้");
+            alert("ไม่สามารถเชื่อมต่อระบบหลังบ้านได้ (กรุณาเช็กเซิร์ฟเวอร์ Render)");
             console.error(err);
         });
+
 }
 
         function onDirectionChange() {
