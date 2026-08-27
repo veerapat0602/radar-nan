@@ -308,22 +308,29 @@
             return resultStr;
         }
 
-        async function fetchRadarImage() {
-            radarImg.alt = "กำลังดึงภาพจากหลังบ้าน กรุณารอสักครู่...";
-            try {
-                const response = await fetch('/api/capture-radar');
-                const data = await response.json();
-                if (data.success) {
-                    radarImg.src = data.url;
-                } else {
-                    alert("เกิดข้อผิดพลาดในการดึงภาพ: " + data.error);
-                    radarImg.alt = "ดึงภาพล้มเหลว";
-                }
-            } catch (err) {
-                alert("ไม่สามารถเชื่อมต่อกับ Server หลังบ้านได้");
-                radarImg.alt = "ไม่สามารถเชื่อมต่อ Server";
+        function fetchRadarImage() {
+    // เปลี่ยนเป็น URL หลังบ้านที่คุณได้จาก Render
+    const backendUrl = "https://radar-backend-u1xk.onrender.com";
+
+    fetch(backendUrl)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const img = new Image();
+                img.crossOrigin = "Anonymous";
+                img.onload = function() {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    alert("ดึงภาพเรดาร์สำเร็จ!");
+                };
+                img.src = data.url;
             }
-        }
+        })
+        .catch(err => {
+            alert("ไม่สามารถเชื่อมต่อหลังบ้านได้");
+            console.error(err);
+        });
+}
 
         function onDirectionChange() {
             setArrowByDirection();
