@@ -311,24 +311,24 @@
        function fetchRadarImage() {
     const backendUrl = "https://radar-backend-u1xk.onrender.com/api/capture-radar";
 
-    alert("กำลังดึงภาพเรดาร์ล่าสุด กรุณารอสักครู่...");
+    alert("กำลังแคปภาพเรดาร์ล่าสุดจากหลังบ้าน (อาจใช้เวลา 5-10 วินาที) กรุณารอสักครู่...");
 
     fetch(backendUrl)
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // เพิ่ม ?_ts=... เพื่อป้องกัน Cache ของเบราว์เซอร์
-                const imageUrlWithNoCache = data.url + "?_ts=" + new Date().getTime();
-
-                // ส่ง URL ภาพที่ไม่มีแคชไปยังแท็ก <img>
                 const radarImg = document.getElementById('radarImg');
-                radarImg.src = imageUrlWithNoCache;
-
-                alert("ดึงภาพเรดาร์ล่าสุดสำเร็จ!");
+                radarImg.src = data.url; // แสดงรูปภาพ Data Base64 บนหน้าเว็บทันที
+                alert("ดึงภาพเรดาร์สำเร็จ!");
             } else {
-                alert("ไม่สามารถดึงภาพเรดาร์ได้");
+                alert("ไม่สามารถแคปภาพเรดาร์ได้");
             }
         })
+        .catch(err => {
+            alert("ไม่สามารถเชื่อมต่อหลังบ้านได้");
+            console.error(err);
+        });
+
         .catch(err => {
             alert("ไม่สามารถเชื่อมต่อระบบหลังบ้านได้ (กรุณาเช็กเซิร์ฟเวอร์ Render)");
             console.error(err);
