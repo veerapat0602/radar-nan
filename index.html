@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบวิเคราะห์เรดาร์ฝน จ.น่าน</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Sarabun', sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 20px;
+        }
+        .main-container {
+            display: flex;
+            flex-direction: row;
+            gap: 20px;
+            max-width: 900px;
+            margin: 0 auto;
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .radar-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .radar-box {
+            width: 450px;
+            height: 500px;
+            position: relative;
+            border: 2px solid #007bff;
+            border-radius: 8px;
+            background-color: #eee;
+            overflow: hidden;
+        }
+
+        .radar-box img.bg-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        #arrowCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            cursor: crosshair;
+        }
+
+        .control-panel {
+            width: 360px;
+            background: #fafafa;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            box-sizing: border-box;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        label.group-label {
+            font-weight: bold;
+            font-size: 15px;
+            color: #333;
+        }
+        select, input[type="date"], input[type="time"] {
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 15px;
+            font-family: 'Sarabun', sans-serif;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .date-time-inputs {
+            display: flex;
+            gap: 8px;
+        }
+
+        .district-container {
+            max-height: 130px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            padding: 8px;
+            background: #fff;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            box-sizing: border-box;
+        }
+        .district-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 16px;
+            font-family: 'Sarabun', sans-serif;
+            transition: background 0.2s;
+        }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-primary:hover { background: #0056b3; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn-danger:hover { background: #bd2130; }
+        .btn-success { background: #28a745; color: white; margin-top: 10px; width: 100%; }
+        .btn-success:hover { background: #218838; }
+
+        .info-card {
+            width: 426px;
+            margin-top: 15px;
+            padding: 12px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            font-size: 15px;
+            line-height: 1.6;
+        }
+
+        #resultContainer {
+            margin-top: 30px;
+            text-align: center;
+        }
+        #resultImage {
+            max-width: 500px;
+            border: 2px solid #28a745;
+            border-radius: 8px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <h2 style="text-align: center; color: #1a252f;">ระบบวิเคราะห์เรดาร์ฝน จ.น่าน</h2>
+
+    <div class="main-container">
+        <!-- ฝั่งซ้าย: เรดาร์ + Canvas ลากลูกศร -->
+        <div class="radar-section">
+            <div class="radar-box">
+                <img id="radarImg" class="bg-img" src="" alt="กดปุ่มดึงภาพเรดาร์ล่าสุด">
+                <canvas id="arrowCanvas" width="450" height="500"></canvas>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button class="btn btn-primary" onclick="fetchRadarImage()">ดึงภาพเรดาร์ล่าสุด (หลังบ้าน)</button>
+                <button class="btn btn-danger" onclick="clearArrow()">เคลียร์ลูกศร</button>
+            </div>
+
+            <!-- สรุปข้อมูลใต้ภาพ -->
+            <div class="info-card">
+                <strong>สรุปสถานการณ์ฝน:</strong><br>
+                • ภาพเรดาร์: <span id="textTime" style="color:red; font-weight:bold;">-</span><br>
+                • ความแรงกลุ่มฝน: <span id="textIntensity">ไม่พบกลุ่มฝน</span><br>
+                • พบกลุ่มฝนบริเวณ: <span id="textCurrentArea">-</span><br>
+                • ทิศทางการเคลื่อนตัว: <span id="textDir">-</span><br>
+                • พื้นที่คาดว่ากลุ่มฝนจะเข้าปกคลุม: <span id="textArea">-</span>
+            </div>
+        </div>
+
+        <!-- ฝั่งขวา: เมนูจัดการ -->
+        <div class="control-panel">
+            <h3 style="margin-top: 0;">เมนูสร้างข้อความ</h3>
+
+            <div class="form-group">
+                <label class="group-label">1. เลือกวัน-เดือน-ปี และเวลา:</label>
+                <div class="date-time-inputs">
+                    <input type="date" id="dateInput" onchange="updateInfo()">
+                    <input type="time" id="timeInput" onchange="updateInfo()">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="group-label">2. ทิศทางการเคลื่อนตัว:</label>
+                <select id="directionSelect" onchange="onDirectionChange()">
+                    <option value="-">- (ไม่แสดงลูกศร)</option>
+                    <option value="ตะวันออกเฉียงเหนือ">ตะวันออกเฉียงเหนือ (NE)</option>
+                    <option value="ตะวันออก">ตะวันออก (E)</option>
+                    <option value="ตะวันออกเฉียงใต้">ตะวันออกเฉียงใต้ (SE)</option>
+                    <option value="ใต้">ใต้ (S)</option>
+                    <option value="ตะวันตกเฉียงใต้">ตะวันตกเฉียงใต้ (SW)</option>
+                    <option value="ตะวันตก">ตะวันตก (W)</option>
+                    <option value="ตะวันตกเฉียงเหนือ">ตะวันตกเฉียงเหนือ (NW)</option>
+                    <option value="เหนือ">เหนือ (N)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="group-label">3. กลุ่มฝนขนาดไหน (ความแรง):</label>
+                <select id="intensitySelect" onchange="updateInfo()">
+                    <option value="ไม่พบกลุ่มฝน">ไม่พบกลุ่มฝน</option>
+                    <option value="ฝนเบา">ฝนเบา</option>
+                    <option value="ฝนปานกลาง">ฝนปานกลาง</option>
+                    <option value="ฝนหนัก">ฝนหนัก</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="group-label">4. พบกลุ่มฝนบริเวณ:</label>
+                <div class="district-container" id="currentDistrictList">
+                    <label class="district-item"><input type="checkbox" value="-" onchange="updateInfo()"> -</label>
+		    <label class="district-item"><input type="checkbox" value="ทุกอำเภอในจ.น่าน" onchange="updateInfo()"> ทุกอำเภอในจ.น่าน</label>
+                    <label class="district-item"><input type="checkbox" value="อ.เมืองน่าน" onchange="updateInfo()"> อ.เมืองน่าน</label>
+                    <label class="district-item"><input type="checkbox" value="อ.เวียงสา" onchange="updateInfo()"> อ.เวียงสา</label>
+                    <label class="district-item"><input type="checkbox" value="อ.ปัว" onchange="updateInfo()"> อ.ปัว</label>
+                    <label class="district-item"><input type="checkbox" value="อ.ท่าวังผา" onchange="updateInfo()"> อ.ท่าวังผา</label>
+                    <label class="district-item"><input type="checkbox" value="อ.เชียงกลาง" onchange="updateInfo()"> อ.เชียงกลาง</label>
+                    <label class="district-item"><input type="checkbox" value="อ.ทุ่งช้าง" onchange="updateInfo()"> อ.ทุ่งช้าง</label>
+                    <label class="district-item"><input type="checkbox" value="อ.เฉลิมพระเกียรติ" onchange="updateInfo()"> อ.เฉลิมพระเกียรติ</label>
+                    <label class="district-item"><input type="checkbox" value="อ.บ่อเกลือ" onchange="updateInfo()"> อ.บ่อเกลือ</label>
+                    <label class="district-item"><input type="checkbox" value="อ.สันติสุข" onchange="updateInfo()"> อ.สันติสุข</label>
+                    <label class="district-item"><input type="checkbox" value="อ.แม่จริม" onchange="updateInfo()"> อ.แม่จริม</label>
+                    <label class="district-item"><input type="checkbox" value="อ.บ้านหลวง" onchange="updateInfo()"> อ.บ้านหลวง</label>
+                    <label class="district-item"><input type="checkbox" value="อ.นาน้อย" onchange="updateInfo()"> อ.นาน้อย</label>
+                    <label class="district-item"><input type="checkbox" value="อ.นาหมื่น" onchange="updateInfo()"> อ.นาหมื่น</label>
+                    <label class="district-item"><input type="checkbox" value="อ.สองแคว" onchange="updateInfo()"> อ.สองแคว</label>
+                    <label class="district-item"><input type="checkbox" value="อ.ภูเพียง" onchange="updateInfo()"> อ.ภูเพียง</label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="group-label">5. พื้นที่คาดว่ากลุ่มฝนจะเข้าปกคลุม:</label>
+                <div class="district-container" id="forecastDistrictList">
+                    <label class="district-item"><input type="checkbox" value="-" onchange="updateInfo()"> -</label>
+		    <label class="district-item"><input type="checkbox" value="ทุกอำเภอในจ.น่าน" onchange="updateInfo()"> ทุกอำเภอในจ.น่าน</label>
+                    <label class="district-item"><input type="checkbox" value="อ.เมืองน่าน" onchange="updateInfo()"> อ.เมืองน่าน</label>
+                    <label class="district-item"><input type="checkbox" value="อ.เวียงสา" onchange="updateInfo()"> อ.เวียงสา</label>
+                    <label class="district-item"><input type="checkbox" value="อ.ปัว" onchange="updateInfo()"> อ.ปัว</label>
+                    <label class="district-item"><input type="checkbox" value="อ.ท่าวังผา" onchange="updateInfo()"> อ.ท่าวังผา</label>
+                    <label class="district-item"><input type="checkbox" value="อ.เชียงกลาง" onchange="updateInfo()"> อ.เชียงกลาง</label>
+                    <label class="district-item"><input type="checkbox" value="อ.ทุ่งช้าง" onchange="updateInfo()"> อ.ทุ่งช้าง</label>
+                    <label class="district-item"><input type="checkbox" value="อ.เฉลิมพระเกียรติ" onchange="updateInfo()"> อ.เฉลิมพระเกียรติ</label>
+                    <label class="district-item"><input type="checkbox" value="อ.บ่อเกลือ" onchange="updateInfo()"> อ.บ่อเกลือ</label>
+                    <label class="district-item"><input type="checkbox" value="อ.สันติสุข" onchange="updateInfo()"> อ.สันติสุข</label>
+                    <label class="district-item"><input type="checkbox" value="อ.แม่จริม" onchange="updateInfo()"> อ.แม่จริม</label>
+                    <label class="district-item"><input type="checkbox" value="อ.บ้านหลวง" onchange="updateInfo()"> อ.บ้านหลวง</label>
+                    <label class="district-item"><input type="checkbox" value="อ.นาน้อย" onchange="updateInfo()"> อ.นาน้อย</label>
+                    <label class="district-item"><input type="checkbox" value="อ.นาหมื่น" onchange="updateInfo()"> อ.นาหมื่น</label>
+                    <label class="district-item"><input type="checkbox" value="อ.สองแคว" onchange="updateInfo()"> อ.สองแคว</label>
+                    <label class="district-item"><input type="checkbox" value="อ.ภูเพียง" onchange="updateInfo()"> อ.ภูเพียง</label>
+                </div>
+            </div>
+
+            <button class="btn btn-success" onclick="generateFinalImage()">สร้างภาพผลลัพธ์ img</button>
+        </div>
+    </div>
+
+    <div id="resultContainer">
+        <h3 id="resultHeader" style="display:none;">ภาพผลลัพธ์พร้อมนำไปใช้งาน (คลิกขวาบันทึกรูปได้เลย):</h3>
+        <img id="resultImage" alt="ผลลัพธ์เรดาร์">
+    </div>
+
+    <script>
+        const canvas = document.getElementById('arrowCanvas');
+        const ctx = canvas.getContext('2d');
+        const radarImg = document.getElementById('radarImg');
+
+        let arrowStart = null;
+        let arrowEnd = null;
+        let isDrawing = false;
+
+        const thaiMonths = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+
+        function getFormattedDateTime() {
+            const dateVal = document.getElementById('dateInput').value;
+            const timeVal = document.getElementById('timeInput').value;
+
+            if (!dateVal && !timeVal) return "-";
+
+            let resultStr = "";
+            if (dateVal) {
+                const d = new Date(dateVal);
+                const day = d.getDate();
+                const month = thaiMonths[d.getMonth()];
+                const year = (d.getFullYear() + 543).toString().slice(-2);
+                resultStr += `${day} ${month} ${year}`;
+            }
+
+            if (timeVal) {
+                resultStr += `${resultStr ? " " : ""}เวลา ${timeVal} น.`;
+            }
+
+            return resultStr;
+        }
+
+        async function fetchRadarImage() {
+            radarImg.alt = "กำลังดึงภาพจากหลังบ้าน กรุณารอสักครู่...";
+            try {
+                const response = await fetch('/api/capture-radar');
+                const data = await response.json();
+                if (data.success) {
+                    radarImg.src = data.url;
+                } else {
+                    alert("เกิดข้อผิดพลาดในการดึงภาพ: " + data.error);
+                    radarImg.alt = "ดึงภาพล้มเหลว";
+                }
+            } catch (err) {
+                alert("ไม่สามารถเชื่อมต่อกับ Server หลังบ้านได้");
+                radarImg.alt = "ไม่สามารถเชื่อมต่อ Server";
+            }
+        }
+
+        function onDirectionChange() {
+            setArrowByDirection();
+            updateInfo();
+        }
+
+        function setArrowByDirection() {
+            const dir = document.getElementById('directionSelect').value;
+
+            if (dir === "-") {
+                arrowStart = null;
+                arrowEnd = null;
+                redrawCanvas();
+                return;
+            }
+
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const len = 70;
+
+            arrowStart = { x: centerX, y: centerY };
+
+            switch (dir) {
+                case "เหนือ": arrowEnd = { x: centerX, y: centerY - len }; break;
+                case "ใต้": arrowEnd = { x: centerX, y: centerY + len }; break;
+                case "ตะวันออก": arrowEnd = { x: centerX + len, y: centerY }; break;
+                case "ตะวันตก": arrowEnd = { x: centerX - len, y: centerY }; break;
+                case "ตะวันออกเฉียงเหนือ": arrowEnd = { x: centerX + len, y: centerY - len }; break;
+                case "ตะวันออกเฉียงใต้": arrowEnd = { x: centerX + len, y: centerY + len }; break;
+                case "ตะวันตกเฉียงเหนือ": arrowEnd = { x: centerX - len, y: centerY - len }; break;
+                case "ตะวันตกเฉียงใต้": arrowEnd = { x: centerX - len, y: centerY + len }; break;
+            }
+            redrawCanvas();
+        }
+
+        canvas.addEventListener('click', function(e) {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            if (!isDrawing) {
+                arrowStart = { x: x, y: y };
+                arrowEnd = null;
+                isDrawing = true;
+                redrawCanvas();
+            } else {
+                arrowEnd = { x: x, y: y };
+                isDrawing = false;
+                redrawCanvas();
+            }
+        });
+
+        function redrawCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            if (arrowStart && arrowEnd) {
+                drawArrow(arrowStart.x, arrowStart.y, arrowEnd.x, arrowEnd.y);
+            } else if (arrowStart) {
+                ctx.beginPath();
+                ctx.arc(arrowStart.x, arrowStart.y, 5, 0, Math.PI * 2);
+                ctx.fillStyle = "#ff0000";
+                ctx.fill();
+            }
+        }
+
+        function drawArrow(fromx, fromy, tox, toy) {
+            const headlen = 15;
+            const angle = Math.atan2(toy - fromy, tox - fromx);
+
+            ctx.beginPath();
+            ctx.moveTo(fromx, fromy);
+            ctx.lineTo(tox, toy);
+            ctx.strokeStyle = "#ff0000";
+            ctx.lineWidth = 4;
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(tox, toy);
+            ctx.lineTo(tox - headlen * Math.cos(angle - Math.PI / 6), toy - headlen * Math.sin(angle - Math.PI / 6));
+            ctx.lineTo(tox - headlen * Math.cos(angle + Math.PI / 6), toy - headlen * Math.sin(angle + Math.PI / 6));
+            ctx.lineTo(tox, toy);
+            ctx.fillStyle = "#ff0000";
+            ctx.fill();
+        }
+
+        function clearArrow() {
+            arrowStart = null;
+            arrowEnd = null;
+            isDrawing = false;
+            document.getElementById('directionSelect').value = "-";
+            redrawCanvas();
+            updateInfo();
+        }
+
+        function getSelectedDistricts(containerId) {
+            const checkboxes = document.querySelectorAll(`#${containerId} input[type="checkbox"]:checked`);
+            const selected = Array.from(checkboxes).map(cb => cb.value);
+            return selected.length > 0 ? selected.join(', ') : '-';
+        }
+
+        function updateInfo() {
+            document.getElementById('textTime').innerText = getFormattedDateTime();
+            document.getElementById('textDir').innerText = document.getElementById('directionSelect').value;
+            document.getElementById('textIntensity').innerText = document.getElementById('intensitySelect').value;
+            document.getElementById('textCurrentArea').innerText = getSelectedDistricts('currentDistrictList');
+            document.getElementById('textArea').innerText = getSelectedDistricts('forecastDistrictList');
+        }
+
+        function getWrappedLines(ctx, text, maxWidth) {
+            const items = text.split(', ');
+            let lines = [];
+            let currentLine = '';
+
+            for (let i = 0; i < items.length; i++) {
+                let testLine = currentLine + (currentLine === '' ? '' : ', ') + items[i];
+                let metrics = ctx.measureText(testLine);
+                if (metrics.width > maxWidth && currentLine !== '') {
+                    lines.push(currentLine);
+                    currentLine = items[i];
+                } else {
+                    currentLine = testLine;
+                }
+            }
+            if (currentLine) {
+                lines.push(currentLine);
+            }
+            return lines;
+        }
+
+        function generateFinalImage() {
+            if (!radarImg.src || radarImg.src.endsWith('/')) {
+                alert("กรุณากดดึงภาพเรดาร์ก่อนครับ");
+                return;
+            }
+
+            const imgObj = new Image();
+            imgObj.crossOrigin = "anonymous";
+            imgObj.src = radarImg.src;
+
+            imgObj.onload = function() {
+                document.fonts.ready.then(() => {
+                    const canvasWidth = 450;
+                    const imgAspectRatio = imgObj.height / imgObj.width;
+                    const renderImgHeight = canvasWidth * imgAspectRatio;
+
+                    const dummyCanvas = document.createElement('canvas');
+                    const dummyCtx = dummyCanvas.getContext('2d');
+                    // ปรับขนาดฟอนต์ทดสอบการวัดขนาดคำเป็น 12px
+                    dummyCtx.font = "12px 'Sarabun', 'TH Sarabun New', sans-serif";
+
+                    const currentArea = getSelectedDistricts('currentDistrictList');
+                    const forecastArea = getSelectedDistricts('forecastDistrictList');
+
+                    const maxTextWidth = 410; // ความกว้างสูงสุดที่จะตัดคำ
+                    const currentLines = getWrappedLines(dummyCtx, currentArea, maxTextWidth);
+                    const forecastLines = getWrappedLines(dummyCtx, forecastArea, maxTextWidth);
+
+                    const lineSpacing = 16; // ระยะห่างระหว่างบรรทัดสำหรับขนาดฟอนต์ 12px
+                    // คำนวณความสูงของกล่องข้อความสรุปด้านล่างแบบอัตโนมัติ
+                    const textCardHeight = 110 + (currentLines.length + forecastLines.length) * lineSpacing;
+
+                    const exportCanvas = document.createElement('canvas');
+                    exportCanvas.width = canvasWidth;
+                    exportCanvas.height = renderImgHeight + textCardHeight;
+                    const expCtx = exportCanvas.getContext('2d');
+
+                    // 1. วาดรูปเรดาร์
+                    expCtx.drawImage(imgObj, 0, 0, canvasWidth, renderImgHeight);
+
+                    // 2. วาดลูกศร
+                    const scaleY = renderImgHeight / canvas.height;
+                    if (arrowStart && arrowEnd) {
+                        const headlen = 15;
+                        const scaledStartY = arrowStart.y * scaleY;
+                        const scaledEndY = arrowEnd.y * scaleY;
+                        const angle = Math.atan2(scaledEndY - scaledStartY, arrowEnd.x - arrowStart.x);
+
+                        expCtx.beginPath();
+                        expCtx.moveTo(arrowStart.x, scaledStartY);
+                        expCtx.lineTo(arrowEnd.x, scaledEndY);
+                        expCtx.strokeStyle = "#ff0000";
+                        expCtx.lineWidth = 4;
+                        expCtx.stroke();
+
+                        expCtx.beginPath();
+                        expCtx.moveTo(arrowEnd.x, scaledEndY);
+                        expCtx.lineTo(arrowEnd.x - headlen * Math.cos(angle - Math.PI / 6), scaledEndY - headlen * Math.sin(angle - Math.PI / 6));
+                        expCtx.lineTo(arrowEnd.x - headlen * Math.cos(angle + Math.PI / 6), scaledEndY - headlen * Math.sin(angle + Math.PI / 6));
+                        expCtx.lineTo(arrowEnd.x, scaledEndY);
+                        expCtx.fillStyle = "#ff0000";
+                        expCtx.fill();
+                    }
+
+                    // 3. วาดกล่องข้อความสรุปด้านล่าง (สีเขียว)
+                    const boxTop = renderImgHeight;
+                    expCtx.fillStyle = "#00CC33";
+                    expCtx.fillRect(0, boxTop, canvasWidth, textCardHeight);
+
+                    expCtx.strokeStyle = "#ffffff";
+                    expCtx.lineWidth = 2;
+                    expCtx.strokeRect(5, boxTop + 5, canvasWidth - 10, textCardHeight - 10);
+
+                    const radarTime = getFormattedDateTime();
+                    const dir = document.getElementById('directionSelect').value;
+                    const intensity = document.getElementById('intensitySelect').value;
+
+                    // หัวข้อ เวลา (คงไว้เป็นสีแดง ตัวหนา)
+                    if (radarTime !== "-") {
+                        expCtx.fillStyle = "#FF0000";
+                        expCtx.font = "bold 15px 'Sarabun', 'TH Sarabun New', sans-serif";
+                        expCtx.textAlign = "center";
+                        expCtx.fillText(`ภาพเรดาร์ ${radarTime}`, canvasWidth / 2, boxTop + 24);
+                    }
+
+                    expCtx.textAlign = "left";
+                    expCtx.fillStyle = "#000000"; // เปลี่ยนสีตัวหนังสือทั้งหมดเป็นสีดำ
+                    
+                    let currentY = radarTime !== "-" ? boxTop + 42 : boxTop + 25;
+
+                    // 1) ขนาดของกลุ่มฝน
+                    expCtx.font = "bold 12px 'Sarabun', 'TH Sarabun New', sans-serif";
+                    expCtx.fillText(`ขนาดของกลุ่มฝน: ${intensity}`, 15, currentY);
+
+                    // 2) พบกลุ่มฝนบริเวณ (ขึ้นบรรทัดใหม่ให้รายชื่ออำเภอ)
+                    currentY += 18;
+                    expCtx.font = "bold 12px 'Sarabun', 'TH Sarabun New', sans-serif";
+                    expCtx.fillText(`พบกลุ่มฝนบริเวณ:`, 15, currentY);
+
+                    currentY += 16;
+                    expCtx.font = "12px 'Sarabun', 'TH Sarabun New', sans-serif";
+                    currentLines.forEach((line, idx) => {
+                        const lineY = currentY + (idx * lineSpacing);
+                        expCtx.fillText(line, 15, lineY);
+                    });
+
+                    currentY += (currentLines.length * lineSpacing);
+
+                    // 3) ทิศทางการเคลื่อนตัว
+                    expCtx.font = "bold 12px 'Sarabun', 'TH Sarabun New', sans-serif";
+                    expCtx.fillText(`ทิศทางการเคลื่อนตัว: ${dir}`, 15, currentY);
+
+                    // 4) พื้นที่คาดว่ากลุ่มฝนจะเข้าปกคลุม (ขึ้นบรรทัดใหม่ให้รายชื่ออำเภอ)
+                    currentY += 18;
+                    expCtx.font = "bold 12px 'Sarabun', 'TH Sarabun New', sans-serif";
+                    expCtx.fillText(`พื้นที่คาดว่ากลุ่มฝนจะเข้าปกคลุม:`, 15, currentY);
+
+                    currentY += 16;
+                    expCtx.font = "12px 'Sarabun', 'TH Sarabun New', sans-serif";
+                    forecastLines.forEach((line, idx) => {
+                        const lineY = currentY + (idx * lineSpacing);
+                        expCtx.fillText(line, 15, lineY);
+                    });
+
+                    // แสดงผลรูปภาพ
+                    const resultImg = document.getElementById('resultImage');
+                    resultImg.src = exportCanvas.toDataURL('image/png');
+                    resultImg.style.display = 'inline-block';
+                    document.getElementById('resultHeader').style.display = 'block';
+                    resultImg.scrollIntoView({ behavior: 'smooth' });
+                });
+            };
+        }
+    </script>
+</body>
+</html>
